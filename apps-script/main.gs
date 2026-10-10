@@ -200,7 +200,7 @@ function _createFormBase(participants) {
       "同席不可に選んだ人とは、必ず別のグループになります。" +
       "同じ人が2回送信した場合は、最後に送信した回答だけを使います。",
   );
-  form.setShowProgressBar(true);
+  form.setProgressBar(true);   // プログレスバーを表示する
   form.setShuffleQuestions(false);
   form.setCollectEmail(false);
   form.setLimitOneResponsePerUser(false);
