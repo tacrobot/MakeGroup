@@ -200,7 +200,7 @@ function _createFormBase(participants) {
       "同席不可に選んだ人とは、必ず別のグループになります。" +
       "同じ人が2回送信した場合は、最後に送信した回答だけを使います。",
   );
-  form.setProgressBar(true);   // プログレスバーを表示する
+  form.setProgressBar(true); // プログレスバーを表示する
   form.setShuffleQuestions(false);
   form.setCollectEmail(false);
   form.setLimitOneResponsePerUser(false);
@@ -319,11 +319,11 @@ function _continueCreateForm() {
       _scheduleCreateFormContinuation();
     }
   } catch (e) {
-    // 续行中のエラーは状態に記録し、トリガーを停止
+    // 続行中のエラーは状態に記録し、トリガーを停止
     props.setProperty(CF_STATUS, "error");
     props.setProperty(CF_ERROR_MSG, e.message);
     _deleteCreateFormTriggers();
-    console.error("フォーム作成の续行中にエラー: " + e.message);
+    console.error("フォーム作成の続行中にエラー: " + e.message);
   }
 }
 
@@ -439,7 +439,7 @@ function _finalizeCreateForm() {
 
 /**
  * フォーム作成の続行用トリガーをスケジュールする。
- * 既存の续行トリガーがあれば先に削除する。
+ * 既存の続行トリガーがあれば先に削除する。
  */
 function _scheduleCreateFormContinuation() {
   _deleteCreateFormTriggers();
@@ -451,7 +451,7 @@ function _scheduleCreateFormContinuation() {
 }
 
 /**
- * フォーム作成の续行用トリガーを削除する。
+ * フォーム作成の続行用トリガーを削除する。
  */
 function _deleteCreateFormTriggers() {
   const triggers = ScriptApp.getProjectTriggers();
@@ -464,7 +464,7 @@ function _deleteCreateFormTriggers() {
 
 /**
  * フォーム作成の状態をすべてクリアする。
- * PropertiesServiceのキーを削除し、续行トリガーも削除する。
+ * PropertiesServiceのキーを削除し、続行トリガーも削除する。
  */
 function _clearCreateFormState() {
   const props = PropertiesService.getScriptProperties();
@@ -533,6 +533,9 @@ function _writeFormConfig(ss, form, participants, digest) {
     sheet = ss.insertSheet(SHEET_FORM_CONFIG);
   }
   sheet.clearContents();
+
+  // ID列をプレーンテキスト形式に設定（Google Sheetsの自動数値変換を防ぐ）
+  sheet.getRange("C:D").setNumberFormat("@");
 
   // ヘッダー
   sheet.appendRow(["item_type", "item_id", "rater_id", "target_id", "value"]);
@@ -701,7 +704,7 @@ function rebuildMasterRatings() {
     const n = participants.length;
     const nameToId = {};
     for (const p of participants) {
-      nameToId[p.name] = p.id;
+      nameToId[_normalizeName(p.name)] = p.id;
     }
 
     // form_config からアイテムIDの対応表を構築
@@ -713,10 +716,11 @@ function rebuildMasterRatings() {
     for (const row of configData) {
       const [itemType, itemId, raterId, targetId] = row;
       if (itemType === "rating") {
-        if (!ratingMap[raterId]) ratingMap[raterId] = {};
-        ratingMap[raterId][itemId] = targetId;
+        const rid = _normalizeId(raterId);
+        if (!ratingMap[rid]) ratingMap[rid] = {};
+        ratingMap[rid][String(itemId)] = _normalizeId(targetId);
       } else if (itemType === "incompatible") {
-        incompatibleMap[raterId] = itemId;
+        incompatibleMap[_normalizeId(raterId)] = String(itemId);
       }
     }
 
@@ -750,7 +754,7 @@ function rebuildMasterRatings() {
         continue;
       }
 
-      const raterId = nameToId[raterName];
+      const raterId = nameToId[_normalizeName(raterName)];
       if (!raterId) {
         responseLog.push({
           response_id: responseId,
@@ -841,7 +845,7 @@ function rebuildMasterRatings() {
           const selected = ir.getResponse(); // 配列
           if (Array.isArray(selected)) {
             for (const name of selected) {
-              const tid = nameToId[name];
+              const tid = nameToId[_normalizeName(name)];
               if (!tid || tid === raterId) {
                 unknownChoice = true;
                 break;
@@ -961,6 +965,11 @@ function rebuildMasterRatings() {
       masterSheet = ss.insertSheet(SHEET_MASTER_RATINGS);
     }
     masterSheet.clearContents();
+
+    // ID列とincompatible列をプレーンテキスト形式に設定（Google Sheetsの自動数値変換を防ぐ）
+    masterSheet.getRange("A:B").setNumberFormat("@");
+    masterSheet.getRange("D:D").setNumberFormat("@");
+
     if (masterRows.length > 0) {
       masterSheet
         .getRange(1, 1, masterRows.length, masterRows[0].length)
@@ -1001,6 +1010,9 @@ function _writeImportLog(ss, logEntries, missingIds) {
     logSheet = ss.insertSheet(SHEET_IMPORT_LOG);
   }
   logSheet.clearContents();
+
+  // rater_id列をプレーンテキスト形式に設定（Google Sheetsの自動数値変換を防ぐ）
+  logSheet.getRange("C:C").setNumberFormat("@");
 
   const rows = [
     ["response_id", "submitted_at", "rater_id", "status", "reason"],
@@ -1069,6 +1081,28 @@ function reopenForm() {
 // ============================================================
 
 /**
+ * 名前の空白を正規化する。
+ * 全角空白（U+3000）を半角空白に変換し、連続する空白を1つにまとめ、前後の空白を削除する。
+ * 名前の照合（nameToIdの構築とルックアップ）の両側で同じ正規化を適用するために使う。
+ */
+function _normalizeName(name) {
+  return String(name)
+    .replace(/\u3000/g, " ")
+    .replace(/ +/g, " ")
+    .trim();
+}
+
+/**
+ * 参加者IDを正規化する。
+ * form_config シートから読み込んだ値が数値（ゼロ埋めなし）になる場合に備え、
+ * 常に3桁ゼロ埋めの文字列に変換する。
+ * "001" → "001"、1 → "001"、1234567890（アイテムID等）→ "1234567890"（3桁超はそのまま）
+ */
+function _normalizeId(id) {
+  return String(id).trim().padStart(3, "0");
+}
+
+/**
  * participants シートから参加者リストを読み込む。
  * 失敗時は null を返す（エラーは呼び出し側で表示）。
  */
@@ -1089,7 +1123,7 @@ function _loadParticipants(ss) {
 
   const participants = [];
   for (let i = 1; i < data.length; i++) {
-    const id = String(data[i][0]).trim();
+    const id = _normalizeId(data[i][0]);
     const name = String(data[i][1]).trim();
     if (id && name) {
       participants.push({ id, name });
