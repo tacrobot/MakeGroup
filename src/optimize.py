@@ -210,7 +210,14 @@ def _add_hint_from_groups(
     n: int,
     k: int,
 ) -> None:
-    """現在のグループ割り当てをヒントとして設定する"""
+    """現在のグループ割り当てをヒントとして設定する。
+    
+    同一モデルに複数回ヒントを設定すると重複エラーになるため、
+    設定前に既存のヒントをクリアする。
+    """
+    # 既存ヒントをクリア（重複エラー防止）
+    model.clear_hints()
+
     pid_group: dict[str, int] = {}
     for g_idx, members in enumerate(groups):
         for pid in members:
