@@ -502,7 +502,7 @@ function checkCreateFormStatus() {
         " / " +
         participants.length +
         " まで完了しています。\n" +
-        "自動的に续行されますので、しばらくお待ちください。",
+        "自動的に続行されますので、しばらくお待ちください。",
     );
   } else if (status === "done") {
     const formUrl = props.getProperty(CF_FORM_URL);
