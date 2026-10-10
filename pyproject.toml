@@ -1,0 +1,12 @@
+[project]
+name = "grouping-system"
+version = "0.1.0"
+description = "相互評価をもとに公平なグループ分けを行うシステム"
+requires-python = ">=3.11"
+dependencies = [
+    "ortools==9.11.4210",
+    "pytest==8.3.4",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
