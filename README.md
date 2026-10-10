@@ -25,7 +25,28 @@ Google フォーム（評価収集）
 uv sync
 ```
 
-## Python の使い方
+## Google Apps Script のセットアップ
+
+1. Google スプレッドシートを作成し、`participants` シートを追加する
+2. シートの拡張機能 > Apps Script でスクリプトエディタを開く
+3. `apps-script/main.gs` の内容を貼り付けて保存する
+4. スプレッドシートを再読み込みすると「グループ分け」メニューが表示される
+
+### 使い方
+
+1. `participants` シートに参加者の ID（`001` 形式）と名前を入力する
+2. 「グループ分け」 > 「フォームを作成」でフォームを生成する。参加者数が多い場合は処理が分割され、自動的に完了する。完了は画面に表示されるか、「フォーム作成の状態を確認」で確認できる
+3. 表示された URL を参加者に共有する
+4. 全員が回答したら「回答受付を締め切る」を実行する
+5. 「評価データを再集計」で `master_ratings` が更新されたことを確認する
+6. `participants` と `master_ratings` を UTF-8 CSV として書き出し、`data/` に配置する
+   - **注意:** Excel で開かないこと（ID のゼロ埋めが消えるため）
+7. 必要に応じて `master_ratings.csv` の `incompatible` 列だけをテキストエディタで編集する
+8. `data/constraints.json` にグループ人数を設定する
+9. `uv run python main.py` を実行して候補を確認する
+10. 管理者が最終グループを決定し、決定後の所属だけを参加者に共有する
+
+## Python の使い方（詳細）
 
 ### 1. 入力ファイルを準備する
 
@@ -58,13 +79,13 @@ rater_id,target_id,score,incompatible,response_id,submitted_at
 
 ```powershell
 # 標準実行
-python main.py
+uv run python main.py
 
 # 全オプション指定
-python main.py --data-dir data --output-dir output --top-n 10 --time-limit 60 --workers 8 --seed 0
+uv run python main.py --data-dir data --output-dir output --top-n 10 --time-limit 60 --workers 8 --seed 0
 
 # 再現性優先モード（workers が強制的に 1 になる）
-python main.py --deterministic
+uv run python main.py --deterministic
 ```
 
 ### 3. 結果を確認する
@@ -88,34 +109,14 @@ python main.py --deterministic
 ## テストの実行
 
 ```powershell
-pytest tests/
+uv run pytest tests/
 ```
 
-## Google Apps Script のセットアップ
-
-1. Google スプレッドシートを作成し、`participants` シートを追加する
-2. シートの拡張機能 > Apps Script でスクリプトエディタを開く
-3. `apps-script/main.gs` の内容を貼り付けて保存する
-4. スプレッドシートを再読み込みすると「グループ分け」メニューが表示される
-
-### 使い方
-
-1. `participants` シートに参加者の ID（`001` 形式）と名前を入力する
-2. 「グループ分け」 > 「フォームを作成」でフォームを生成する。参加者数が多い場合は処理が分割され、自動的に完了する。完了は画面に表示されるか、「フォーム作成の状態を確認」で確認できる
-3. 表示された URL を参加者に共有する
-4. 全員が回答したら「回答受付を締め切る」を実行する
-5. 「評価データを再集計」で `master_ratings` が更新されたことを確認する
-6. `participants` と `master_ratings` を UTF-8 CSV として書き出し、`data/` に配置する
-   - **注意:** Excel で開かないこと（ID のゼロ埋めが消えるため）
-7. 必要に応じて `master_ratings.csv` の `incompatible` 列だけをテキストエディタで編集する
-8. `data/constraints.json` にグループ人数を設定する
-9. `python main.py` を実行して候補を確認する
-10. 管理者が最終グループを決定し、決定後の所属だけを参加者に共有する
 
 ## ディレクトリ構造
 
 ```
-grouping-system/
+MakeGroup/
 ├─ data/                    # 入力データ（Git 管理外）
 │  ├─ participants.csv
 │  ├─ master_ratings.csv
