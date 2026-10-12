@@ -131,37 +131,8 @@ uv run python main.py --deterministic
 | 3 | 解が得られなかった |
 | 4 | 内部エラー |
 
-### テストの実行
+## テストの実行
 
 ```powershell
 uv run pytest tests/
-```
-
-### ディレクトリ構造
-
-```
-MakeGroup/
-├─ data/                    # 入力データ（Git 管理外）
-│  ├─ participants.csv
-│  ├─ master_ratings.csv
-│  └─ constraints.json
-├─ output/                  # 最適化結果（Git 管理外）
-│  └─ YYYYMMDD_HHMMSS/
-│     ├─ candidates.md
-│     ├─ candidates.json
-│     └─ run_info.json
-├─ src/
-│  ├─ import_data.py        # CSV/JSON 読み込み・incompatible_pairs 生成
-│  ├─ validate.py           # 入力検証（エラーコード F-01〜C-04、警告 W-01〜W-02）
-│  ├─ metrics.py            # 指標計算（fractions.Fraction 使用）
-│  ├─ optimize.py           # CP-SAT による最適化（3段階辞書式）
-│  └─ output.py             # 出力ファイル生成
-├─ tests/                   # pytest テスト
-├─ apps-script/
-│  └─ main.gs               # Google Apps Script
-├─ main.py                  # エントリーポイント
-├─ pyproject.toml           # パッケージ設定
-├─ requirements.txt         # ライブラリバージョン固定
-├─ .gitignore
-└─ README.md
 ```
